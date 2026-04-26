@@ -7,11 +7,21 @@ specifies that any unauthenticated user can "create", "read", "update",
 and "delete" any "Todo" records.
 =========================================================================*/
 const schema = a.schema({
-  Todo: a
-    .model({
-      content: a.string(),
-    })
-    .authorization((allow) => [allow.guest()]),
+  BedrockResponse: a.customType({
+    body: a.string(),
+    error: a.string(),
+  }),
+  askBedrock: a
+    .query()
+    .arguments({ ingredients: a.string().array() })
+    .returns(a.ref("BedrockResponse"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(
+      a.handler.custom({
+        entry: "./bedrock.js",
+        dataSource: "bedrockDS"
+      })
+    ),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -19,7 +29,10 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'identityPool',
+    defaultAuthorizationMode: "apiKey",
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30,
+    },
   },
 });
 
